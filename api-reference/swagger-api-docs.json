@@ -13,6 +13,7 @@
   "paths": {
     "/startTemplateDeployment/{templateID}": {
       "post": {
+        "summary": "Start Template Deployment",
         "description": "Start a deployment given a nexlayer template ID",
         "parameters": [
           {
@@ -43,6 +44,7 @@
     },
     "/checkSiteStatus/{namespace}/{deploymentName}": {
       "get": {
+        "summary": "Check Site Status",
         "description": "Check the status of a deployment",
         "parameters": [
           {
@@ -81,6 +83,7 @@
     },
     "/startUserDeployment/{userID}": {
       "post": {
+        "summary": "Start User Deployment",
         "description": "Start a template deployment given a user ID",
         "parameters": [
           {
@@ -125,6 +128,7 @@
     },
     "/getDeployments": {
       "get": {
+        "summary": "Get Deployments",
         "description": "Get all user deployments",
         "responses": {
           "200": {
@@ -145,6 +149,7 @@
     },
     "/getDeploymentInfo/{namespace}": {
       "get": {
+        "summary": "Get Deployment Info",
         "description": "Get information around a specific deployment",
         "parameters": [
           {
