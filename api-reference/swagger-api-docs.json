@@ -15,6 +15,11 @@
       "post": {
         "summary": "Start User Deployment",
         "description": "Start a deployment given an application ID. Accepts a YAML file uploaded using `--data-binary`.",
+        "examples": {
+          "curl": {
+            "$ref": "#/components/examples/startUserDeploymentCurlExample"
+          }
+        },
         "parameters": [
           {
             "name": "applicationID",
@@ -54,6 +59,14 @@
     }
   },
   "components": {
+    "examples": {
+      "startUserDeploymentCurlExample": {
+        "value": {
+          "language": "bash",
+          "code": "curl -X POST https://app.staging.nexlayer.io/startUserDeployment/<applicationID> -H 'Content-type: text/x-yaml' --data-binary @nexlayer-template.yaml"
+        }
+      }
+    },
     "schemas": {
       "getDeploymentsResponse": {
         "type": "object",
