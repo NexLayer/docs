@@ -11,83 +11,13 @@
     }
   ],
   "paths": {
-    "/startTemplateDeployment/{templateID}": {
-      "post": {
-        "summary": "Start Template Deployment",
-        "description": "Start a deployment given a nexlayer template ID",
-        "parameters": [
-          {
-            "name": "templateID",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/startTemplateDeploymentResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error"
-          }
-        }
-      }
-    },
-    "/checkSiteStatus/{namespace}/{deploymentName}": {
-      "get": {
-        "summary": "Check Site Status",
-        "description": "Check the status of a deployment",
-        "parameters": [
-          {
-            "name": "namespace",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "deploymentName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/checkSiteStatusResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error"
-          }
-        }
-      }
-    },
-    "/startUserDeployment/{userID}": {
+    "/startUserDeployment/{applicationID}": {
       "post": {
         "summary": "Start User Deployment",
-        "description": "Start a template deployment given a user ID",
+        "description": "Start a deployment given an application ID. Accepts a YAML file uploaded using `--data-binary`.",
         "parameters": [
           {
-            "name": "userID",
+            "name": "applicationID",
             "in": "path",
             "required": true,
             "schema": {
@@ -111,69 +41,13 @@
           }
         },
         "requestBody": {
+          "required": true,
           "content": {
-            "application/json": {
+            "text/x-yaml": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "ip": {
-                    "example": "any"
-                  }
-                }
+                "$ref": "#/components/schemas/startUserDeploymentRequestBody"
               }
             }
-          }
-        }
-      }
-    },
-    "/getDeployments": {
-      "get": {
-        "summary": "Get Deployments",
-        "description": "Get all user deployments",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/getDeploymentsResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error"
-          }
-        }
-      }
-    },
-    "/getDeploymentInfo/{namespace}": {
-      "get": {
-        "summary": "Get Deployment Info",
-        "description": "Get information around a specific deployment",
-        "parameters": [
-          {
-            "name": "namespace",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/getDeploymentInfoResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error"
           }
         }
       }
@@ -297,6 +171,34 @@
           "namespace",
           "url"
         ]
+      },
+      "saveCustomDomainRequestBody": {
+        "type": "object",
+        "properties": {
+          "domain": {
+            "type": "string",
+            "example": "mydomain.com"
+          }
+        },
+        "required": [
+          "domain"
+        ]
+      },
+      "saveCustomDomainResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Custom domain saved successfully"
+          }
+        },
+        "required": [
+          "message"
+        ]
+      },
+      "startUserDeploymentRequestBody": {
+        "type": "string",
+        "format": "binary"
       }
     }
   }
