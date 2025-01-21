@@ -1,86 +1,188 @@
+# Nexlayer Quickstart Guide
+
+Welcome to Nexlayer! This guide will help you set up, configure, and deploy cutting-edge full-stack web applications effortlessly.
+
 ---
-title: 'Quickstart'
-description: 'Start building awesome documentation in under 5 minutes'
+
+## Overview
+
+Nexlayer simplifies the development-to-deployment process with:
+
+- **Automated Docker Image Management**: GitHub Actions for streamlined image building and pushing.
+- **Seamless Service Integration**: Effortless configuration of inter-service communication.
+- **Hassle-Free Deployment**: Single YAML templates to deploy complex stacks with ease.
+
 ---
 
-## Setup your development
+## 1. Using the Nexlayer Template Builder (Web Interface)
 
-Learn how to update your docs locally and deploy them to the public.
+### Step 1: Select Your Stack
 
-### Edit and preview
+1. Log in to your Nexlayer account and navigate to the **Template Builder** tool.
+2. Browse through the available stack templates under "Choose your fullstack template."
+   - Options include:
+     - **MERN Stack**: MongoDB, Express, React, Node.js
+     - **MEVN Stack**: MongoDB, Express, Vue.js, Node.js
+     - **PERN Stack**: PostgreSQL, Express, React, Node.js
+     - **MEAN Stack**: MongoDB, Express, Angular, Node.js
+     - **MNFA Stack**: MongoDB, Neo4j, FastAPI, Angular
+3. Select the template that matches your application requirements to proceed to the next step.
 
-<AccordionGroup>
-  <Accordion icon="github" title="Clone your docs locally">
-    During the onboarding process, we created a repository on your Github with
-    your docs content. You can find this repository on our
-    [dashboard](https://dashboard.mintlify.com). To clone the repository
-    locally, follow these
-    [instructions](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository)
-    in your terminal.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Preview changes">
-    Previewing helps you make sure your changes look as intended. We built a
-    command line interface to render these changes locally. 1. Install the
-    [Mintlify CLI](https://www.npmjs.com/package/mintlify) to preview the
-    documentation changes locally with this command: ``` npm i -g mintlify ```
-    2. Run the following command at the root of your documentation (where
-    `mint.json` is): ``` mintlify dev ```
-  </Accordion>
-</AccordionGroup>
+### Step 2: Configure Your Application
 
-### Deploy your changes
+1. After selecting your stack, proceed to the **Configure** step.
+2. Customize the following settings:
+   - **Pods**: Configure the services (e.g., frontend, backend, database).
+     - Example:
+       - **MongoDB** pod:
+         - `MONGO_INITDB_ROOT_USERNAME`: Set the database root username.
+         - `MONGO_INITDB_ROOT_PASSWORD`: Set the root password.
+         - `MONGO_INITDB_DATABASE`: Specify the database name.
+       - **Express** pod:
+         - `MONGODB_URL`: Define the database connection string.
+         - Other variables as needed.
+   - **Ports**: Map container ports to service ports as required by your application.
+   - **Environment Variables**: Add or adjust runtime variables for each service.
+3. Use the visual flow diagram to ensure proper connections between services (e.g., database -> backend -> frontend).
+4. Save the configuration by naming your template appropriately (e.g., `my-mern-todo-app.yaml`).
 
-<AccordionGroup>
+### Step 3: Deploy Your Application
 
-<Accordion icon="message-bot" title="Install our Github app">
-  Our Github app automatically deploys your changes to your docs site, so you
-  don't need to manage deployments yourself. You can find the link to install on
-  your [dashboard](https://dashboard.mintlify.com). Once the bot has been
-  successfully installed, there should be a check mark next to the commit hash
-  of the repo.
-</Accordion>
-<Accordion icon="rocket" title="Push your changes">
-  [Commit and push your changes to
-  Git](https://docs.github.com/en/get-started/using-git/pushing-commits-to-a-remote-repository#about-git-push)
-  for your changes to update in your docs site. If you push and don't see that
-  the Github app successfully deployed your changes, you can also manually
-  update your docs through our [dashboard](https://dashboard.mintlify.com).
-</Accordion>
+1. Click the **Deploy** button in the Template Builder to launch your application.
+2. Monitor deployment progress in the Nexlayer Dashboard.
+   - Confirm the services are running as expected.
+   - Test connections between the frontend, backend, and database.
+3. Your application is now live and accessible via the configured endpoints.
 
-</AccordionGroup>
+---
 
-## Update your docs
+## 2. Configuring the YAML Template
 
-Add content directly in your files with MDX syntax and React components. You can use any of our components, or even build your own.
+Here’s an example of a Nexlayer YAML template for a MERN stack:
 
-<CardGroup>
+### **Registry Configuration**
+```yaml
+registryLogin:
+  type: ghcr.io
+  username: <GitHub Username>
+  personalAccessToken: <GitHub Personal Access Token>
+```
 
-<Card title="Style Your Docs" icon="paintbrush" href="/settings/global">
-  Add flair to your docs with personalized branding.
-</Card>
+### **Pods**
+Example pod for MongoDB:
+```yaml
+pods:
+  - type: database
+    name: mongoDB
+    image: ghcr.io/<username>/mongo-image:v0.01
+    vars:
+      - key: MONGO_INITDB_ROOT_USERNAME
+        value: mongo
+      - key: MONGO_INITDB_ROOT_PASSWORD
+        value: password
+      - key: MONGO_INITDB_DATABASE
+        value: app_db
+```
 
-<Card
-  title="Add API Endpoints"
-  icon="square-code"
-  href="/api-playground/configuration"
->
-  Implement your OpenAPI spec and enable API user interaction.
-</Card>
+### **Port Configuration**
+```yaml
+ports:
+  - containerPort: 3000
+    servicePort: 3000
+```
 
-<Card
-  title="Integrate Analytics"
-  icon="chart-mixed"
-  href="/analytics/supported-integrations"
->
-  Draw insights from user interactions with your documentation.
-</Card>
+### **Nginx Reverse Proxy**
+```nginx
+location /api {
+    proxy_pass http://<express-backend-pod>;
+}
+location / {
+    root /usr/share/nginx/html;
+    index index.html;
+}
+```
 
-<Card
-  title="Host on a Custom Domain"
-  icon="browser"
-  href="/settings/custom-domain/subdomain"
->
-  Keep your docs on your own website's subdomain.
-</Card>
+---
 
-</CardGroup>
+## 3. Monitor Deployment Progress
+
+- Use the **Nexlayer Dashboard** to track real-time progress.
+
+---
+
+## 4. Workflow for Docker Image Creation
+
+To integrate Docker images into Nexlayer:
+
+### 1. Set Up GitHub Actions Workflow
+Create a `.github/workflows/docker-publish.yml` file:
+```yaml
+name: Build and Push Docker Images
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push MongoDB
+        run: |
+          docker build -t ghcr.io/${{ github.actor }}/mongo-image:v0.01 ./mongo
+          docker push ghcr.io/${{ github.actor }}/mongo-image:v0.01
+```
+
+### 2. Tag Images and Push
+```bash
+docker build -t ghcr.io/<username>/<image-name>:v0.01 .
+docker push ghcr.io/<username>/<image-name>:v0.01
+```
+
+---
+
+## 5. Troubleshooting
+
+### Common Issues
+1. **YAML Errors**:
+   - Validate syntax before deployment.
+   - Avoid comments that can cause JSON parsing issues.
+
+2. **Docker Image Push Issues**:
+   - Ensure lowercase usernames.
+   - Verify Personal Access Token permissions.
+
+3. **Deployment Delays**:
+   - Check Docker Hub or GHCR connectivity.
+   - Review logs in the Nexlayer dashboard.
+
+---
+
+## 6. Key Features Recap
+
+- **Prebuilt Templates**: Save time with ready-to-deploy configurations.
+- **Customizable Workflows**: Flexibility to integrate any stack or runtime.
+- **Simplified Deployment**: YAML-driven process reduces complexity.
+
+---
+
+## 7. Need Support?
+
+- Visit the [Nexlayer Documentation](https://docs.nexlayer.io).
+- Contact Support: [support@nexlayer.io](mailto:support@nexlayer.io).
+
+---
+
+With Nexlayer, deploying full-stack web applications is fast, scalable, and efficient. Start building today! 🚀
