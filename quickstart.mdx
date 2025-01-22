@@ -18,7 +18,7 @@ Nexlayer simplifies the development-to-deployment process with:
 
 ### Step 1: Select Your Stack
 
-1. Log in to your Nexlayer account and navigate to the **Template Builder** tool.
+1. Log in to your Nexlayer account and select **Deploy a New Template**.
 2. Browse through the available stack templates under "Choose your fullstack template."
    - Options include:
      - **MERN Stack**: MongoDB, Express, React, Node.js
@@ -33,16 +33,14 @@ Nexlayer simplifies the development-to-deployment process with:
 1. After selecting your stack, proceed to the **Configure** step.
 2. Customize the following settings:
    - **Pods**: Configure the services (e.g., frontend, backend, database).
-     - Example:
-       - **MongoDB** pod:
-         - `MONGO_INITDB_ROOT_USERNAME`: Set the database root username.
-         - `MONGO_INITDB_ROOT_PASSWORD`: Set the root password.
-         - `MONGO_INITDB_DATABASE`: Specify the database name.
-       - **Express** pod:
-         - `MONGODB_URL`: Define the database connection string.
-         - Other variables as needed.
-   - **Ports**: Map container ports to service ports as required by your application.
    - **Environment Variables**: Add or adjust runtime variables for each service.
+      - Example:
+             - **MongoDB** pod:
+               - `MONGO_INITDB_ROOT_USERNAME`: Set the database root username.
+               - `MONGO_INITDB_ROOT_PASSWORD`: Set the root password.
+               - `MONGO_INITDB_DATABASE`: Specify the database name.
+             - Other variables as needed.
+   - **Ports**: Map container ports to service ports as required by your application.
 3. Use the visual flow diagram to ensure proper connections between services (e.g., database -> backend -> frontend).
 4. Save the configuration by naming your template appropriately (e.g., `my-mern-todo-app.yaml`).
 
@@ -56,50 +54,54 @@ Nexlayer simplifies the development-to-deployment process with:
 
 ---
 
-## 2. Configuring the YAML Template
+## 2. Configuring the YAML Template to Use Private Images
 
-Here’s an example of a Nexlayer YAML template for a MERN stack:
+Here’s an example of a Nexlayer YAML template for a MERN stack utilizing images pulled from the Github Container Registry:
 
 ### **Registry Configuration**
 ```yaml
-registryLogin:
-  type: ghcr.io
-  username: <GitHub Username>
-  personalAccessToken: <GitHub Personal Access Token>
-```
-
-### **Pods**
-Example pod for MongoDB:
-```yaml
-pods:
-  - type: database
-    name: mongoDB
-    image: ghcr.io/<username>/mongo-image:v0.01
-    vars:
+application:
+  template: 
+    name: "mongodb-express-react-nodejs"
+    deploymentName: "My MERN Stack"
+    registryLogin:
+      registry: ghcr.io
+      username: <Github Username>
+      personalAccessToken: <GitHub Read:Packages Personal Access Token>
+    pods:
+    - type: database
+      exposeOn80: false
+      name: mongoDB
+      tag: ghcr.io/<Github Lowercase Username>/mern-mongo:v0.01
+      privateTag: true
+      vars:
       - key: MONGO_INITDB_ROOT_USERNAME
         value: mongo
       - key: MONGO_INITDB_ROOT_PASSWORD
-        value: password
+        value: passw0rd
       - key: MONGO_INITDB_DATABASE
-        value: app_db
-```
-
-### **Port Configuration**
-```yaml
-ports:
-  - containerPort: 3000
-    servicePort: 3000
-```
-
-### **Nginx Reverse Proxy**
-```nginx
-location /api {
-    proxy_pass http://<express-backend-pod>;
-}
-location / {
-    root /usr/share/nginx/html;
-    index index.html;
-}
+        value: todo
+    - type: express
+      exposeOn80: false
+      name: express
+      tag: ghcr.io/<Github Lowercase Username>/mern-express:v0.01
+      privateTag: true
+      ports:
+      - name: express
+        containerPort: 3000
+        servicePort: 3000
+    - type: nginx
+      exposeOn80: true
+      name: react
+      tag: ghcr.io/<Github Lowercase Username>/mern-react:v0.01
+      privateTag: true
+      vars:
+      - key: EXPRESS_URL
+        value: BACKEND_CONNECTION_URL
+      ports:
+      - name: react
+        containerPort: 80
+        servicePort: 80
 ```
 
 ---
@@ -115,40 +117,94 @@ location / {
 To integrate Docker images into Nexlayer:
 
 ### 1. Set Up GitHub Actions Workflow
-Create a `.github/workflows/docker-publish.yml` file:
+Create a `.github/workflows/docker-publish.yml` file.
+Example Github Actions Workflow for a MERN Todo App repository:
 ```yaml
-name: Build and Push Docker Images
+name: Build and Push MERN Docker Images to GHCR
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch: # Enable manual trigger
+    inputs:
+      image_tag: # Input parameter for the image tag
+        description: "The tag for the Docker images"
+        required: true
+        default: "latest"
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+      packages: write # Required to push images to GHCR
+
     steps:
+      # Step 1: Checkout the repository
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Log in to GHCR
+      # Step 2: Log in to GitHub Container Registry
+      - name: Log in to GitHub Container Registry
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and Push MongoDB
-        run: |
-          docker build -t ghcr.io/${{ github.actor }}/mongo-image:v0.01 ./mongo
-          docker push ghcr.io/${{ github.actor }}/mongo-image:v0.01
-```
+      # Step 3: Convert repository owner to lowercase (docker image names must all be lowercase)
+      - name: Set repository owner lowercase
+        id: owner_lowercase
+        run: echo "owner_lowercase=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
-### 2. Tag Images and Push
-```bash
-docker build -t ghcr.io/<username>/<image-name>:v0.01 .
-docker push ghcr.io/<username>/<image-name>:v0.01
+      # Step 4: Build the React app
+      - name: Install and Build React App
+        run: |
+          cd react/mern-todo-list
+          npm ci # Install dependencies (prefer ci for CI environments)
+          npm run build # Build the React app
+          cd ../../ # Return to home directory
+
+      # Step 5: Set React image tag
+      - name: Set React Image Tag
+        id: react_tag
+        run: echo "image_tag=${{ github.event.inputs.image_tag }}" >> $GITHUB_ENV
+
+      # Step 6: Build and Push React Docker Image
+      - name: Build and Push React App Image
+        uses: docker/build-push-action@v5
+        with:
+          context: react/mern-todo-list
+          platforms: linux/amd64
+          push: true
+          tags: ghcr.io/${{ env.owner_lowercase }}/mern-react-todo:${{ env.image_tag }}
+
+      # Step 7: Set Express image tag
+      - name: Set Express Image Tag
+        id: express_tag
+        run: echo "image_tag=${{ github.event.inputs.image_tag }}" >> $GITHUB_ENV
+
+      # Step 8: Build and Push Express Docker Image
+      - name: Build and Push Express App Image
+        uses: docker/build-push-action@v5
+        with:
+          context: express
+          platforms: linux/amd64
+          push: true
+          tags: ghcr.io/${{ env.owner_lowercase }}/mern-express-todo:${{ env.image_tag }}
+
+      # Step 9: Set Mongo image tag
+      - name: Set Mongo Image Tag
+        id: mongo_tag
+        run: echo "image_tag=${{ github.event.inputs.image_tag }}" >> $GITHUB_ENV
+
+      # Step 10: Build and Push Mongo Docker Image
+      - name: Build and Push Mongo Image
+        uses: docker/build-push-action@v5
+        with:
+          context: mongoDB
+          platforms: linux/amd64
+          push: true
+          tags: ghcr.io/${{ env.owner_lowercase }}/mern-mongo-todo:${{ env.image_tag }}
 ```
 
 ---
@@ -158,7 +214,7 @@ docker push ghcr.io/<username>/<image-name>:v0.01
 ### Common Issues
 1. **YAML Errors**:
    - Validate syntax before deployment.
-   - Avoid comments that can cause JSON parsing issues.
+   - Avoid comments, this can cause JSON parsing issues.
 
 2. **Docker Image Push Issues**:
    - Ensure lowercase usernames.
